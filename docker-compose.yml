@@ -1,0 +1,60 @@
+web:
+  image: sinso/nginx:latest # for FLOW3 or NEOS 2.0 sinso/nginx:1.0
+  ports:
+    - 80:80
+  environment:
+    VIRTUAL_HOST:  <your-host> # e.g local.dev
+    USERID: 1000
+    USER: <your-user>
+    GROUPID: 50
+    GROUP: <your-group>
+  volumes:
+    - .:/data/web/releases/current
+    - .docker/log:/data/log
+    - .docker/nginx/custom:/etc/nginx/conf.d/custom
+  links:
+    - phpfpm
+
+phpfpm:
+  image: sinso/phpfpm-flow-dev:latest
+  environment:
+    APPLICATION_TYPE: NEOS_1 
+    FLOW_CONTEXT: Development
+    DOMAIN_LIST: <your-domain>
+    PRIMARY_DOMAIN: <your-domain>
+    PRIMARY_SCHEMA: http
+    SSMTP_ROOT: 
+    SSMTP_MAILHUB: 
+    SSMTP_HOSTNAME:
+    IMPORT_MYSQL_DUMP: dump.sql
+    USERID: 1000
+    USER: <your-user>
+    GROUPID: 50
+    GROUP: <your-group>
+  volumes:
+    - .:/data/web/releases/current
+    - .docker/log:/data/log
+    - .docker/cron.d:/etc/cron.d
+    - .docker/ca-certificates:/usr/local/share/ca-certificates
+  links:
+    - db
+    - elasticsearch
+
+db:
+  image: sinso/mariadb:latest
+  environment:
+    MYSQL_ROOT_PASSWORD: docker
+    MYSQL_DATABASE: <your-db>
+    MYSQL_USER: <your-user>
+    MYSQL_PASSWORD: docker
+    USERID: 1000
+    USER: mysql
+    GROUPID: 50
+    GROUP: mysql
+  volumes:
+    - .docker/mysql:/var/lib/mysql
+    - .docker/log:/data/log
+
+elasticsearch:
+  image: sinso/elasticsearch-neos:latest
+
