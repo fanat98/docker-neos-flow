@@ -1,60 +1,80 @@
-web:
-  image: sinso/nginx:latest # for FLOW3 or NEOS 2.0 sinso/nginx:1.0
-  ports:
-    - 80:80
-  environment:
-    VIRTUAL_HOST:  <your-host> # e.g local.dev
-    USERID: 1000
-    USER: <your-user>
-    GROUPID: 50
-    GROUP: <your-group>
-  volumes:
-    - .:/data/web/releases/current
-    - .docker/log:/data/log
-    - .docker/nginx/custom:/etc/nginx/conf.d/custom
-  links:
-    - phpfpm
+version: '2'
+services:
+  web:
+    image: sinso/nginx:latest
+    ports:
+      - 80:80
+    environment:
+      PHPFPM_ENV_APPLICATION_TYPE: TYPO3_8
+      VIRTUAL_HOST: domain.dev
+      PHPFPM_PORT_9000_TCP_PORT: 9000
+      USERID: 1000
+      USER: user
+      GROUPID: 50
+      GROUP: group
+    volumes:
+      - /var/data/projekt:/data/web/releases/current
+      - /var/data/projekt/docker/log:/data/log
+      - /var/data/projekt/docker/nginx/custom:/etc/nginx/conf.d/custom
+    links:
+      - phpfpm
 
-phpfpm:
-  image: sinso/phpfpm-flow-dev:latest
-  environment:
-    APPLICATION_TYPE: NEOS_1 
-    FLOW_CONTEXT: Development
-    DOMAIN_LIST: <your-domain>
-    PRIMARY_DOMAIN: <your-domain>
-    PRIMARY_SCHEMA: http
-    SSMTP_ROOT: 
-    SSMTP_MAILHUB: 
-    SSMTP_HOSTNAME:
-    IMPORT_MYSQL_DUMP: dump.sql
-    USERID: 1000
-    USER: <your-user>
-    GROUPID: 50
-    GROUP: <your-group>
-  volumes:
-    - .:/data/web/releases/current
-    - .docker/log:/data/log
-    - .docker/cron.d:/etc/cron.d
-    - .docker/ca-certificates:/usr/local/share/ca-certificates
-  links:
-    - db
-    - elasticsearch
+  phpfpm:
+    image: sinso/phpfpm-flow-dev:latest
+    environment:
+      APPLICATION_TYPE: TYPO3_8 
+      TYPO3_CONTEXT: Development
+      DOMAIN_LIST: domain.dev domain2.dev
+      PRIMARY_DOMAIN: domain.dev
+      PRIMARY_SCHEMA: http
+      SSMTP_ROOT: 
+      SSMTP_MAILHUB: 
+      SSMTP_HOSTNAME:
+      IMPORT_MYSQL_DUMP: dump.sql
+      USERID: 1000
+      USER: user
+      GROUPID: 50
+      GROUP: group
+      SSH_AUTH_SOCK: /ssh-agent
+      DB_HOST: db
+      DB_ENV_MYSQL_DATABASE: database
+      DB_ENV_MYSQL_USER: db-user
+      DB_ENV_MYSQL_PASSWORD: docker
+      DB_PORT_3306_TCP_PORT: 3306
+      DB_PASSWORD: docker
+    volumes:
+      - /var/data/projekt:/data/web/releases/current
+      - /var/data/projekt/docker/log:/data/log
+      - /var/data/projekt/docker/cron.d:/etc/cron.d
+      - /var/data/projekt/docker/ca-certificates:/usr/local/share/ca-certificates
+      - $SSH_AUTH_SOCK:/ssh-agent
+    links:
+      - db
+      - solr
 
-db:
-  image: sinso/mariadb:latest
-  environment:
-    MYSQL_ROOT_PASSWORD: docker
-    MYSQL_DATABASE: <your-db>
-    MYSQL_USER: <your-user>
-    MYSQL_PASSWORD: docker
-    USERID: 1000
-    USER: mysql
-    GROUPID: 50
-    GROUP: mysql
-  volumes:
-    - .docker/mysql:/var/lib/mysql
-    - .docker/log:/data/log
+  db:
+    image: sinso/mariadb:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: docker
+      MYSQL_DATABASE: database
+      MYSQL_USER: db-user
+      MYSQL_PASSWORD: docker
+      USERID: 1000
+      USER: mysql
+      GROUPID: 50
+      GROUP: mysql
+    volumes:
+      - /var/data/projekt/docker/mysql:/var/lib/mysql
+      - /var/data/projekt/docker/log:/data/log
 
-elasticsearch:
-  image: sinso/elasticsearch-neos:latest
-
+  solr:
+    image: sinso/solr-typo3-bjb:dev
+    ports:
+      - 8983:8983
+    volumes:
+      - /var/data/projekt/docker/solr:/opt/solr/server/solr/data
+  mailhog:
+    image: mailhog/mailhog:v1.0.0
+    ports:
+        - "1025:1025"
+        - "8025:8025"
