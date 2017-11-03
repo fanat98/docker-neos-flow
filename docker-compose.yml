@@ -24,7 +24,7 @@ services:
     environment:
       APPLICATION_TYPE: TYPO3_8 
       TYPO3_CONTEXT: Development
-      DOMAIN_LIST: domain.dev domain2.dev
+      DOMAIN_LIST: domain.dev,domain2.dev
       PRIMARY_DOMAIN: domain.dev
       PRIMARY_SCHEMA: http
       SSMTP_ROOT: 
